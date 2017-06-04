@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.willson.mapper.RoleMapper">
+
+    <sql id="operate_table">
+		tb_sys_role
+	</sql>
+    <sql id="role_privilege_table">
+		tb_sys_role_privilege
+	</sql>
+
+    <resultMap id="BaseResultMap" type="role">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="DATE"/>
+        <result column="modified_time" property="modifiedTime" jdbcType="DATE"/>
+    </resultMap>
+
+    <resultMap id="Role_Privilege_ResultMap" type="role">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="DATE"/>
+        <result column="modified_time" property="modifiedTime" jdbcType="DATE"/>
+        <collection property="privileges" ofType="com.willson.pojo.Privilege" columnPrefix="p_" fetchType="lazy">
+            <id column="id" property="id" jdbcType="BIGINT"/>
+            <result column="title" property="title" jdbcType="VARCHAR"/>
+            <result column="href" property="href" jdbcType="VARCHAR"/>
+            <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, create_time, modified_time
+    </sql>
+
+    <sql id="Role_Privilege_Column_List">
+        r.id, r.name, p.id p_id, p.title p_title, p.href p_href, p.icon p_icon
+    </sql>
+
+    <insert id="insert" parameterType="role">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="AFTER">  <!-- 在添加完后返回id -->
+            SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+        insert into
+        <include refid="operate_table"/>
+        (name, create_time, modified_time) values (#{name,jdbcType=VARCHAR},#{createTime,jdbcType=DATE}, #{modifiedTime,jdbcType=DATE})
+    </insert>
+
+    <insert id="insertRolePrivilege" parameterType="java.util.Map">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="AFTER">  <!-- 在添加完后返回id -->
+            SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+        insert into
+        <include refid="role_privilege_table"/>
+        (role_id, privilege_id) values (#{roleId,jdbcType=BIGINT}, #{privilegeId,jdbcType=BIGINT})
+    </insert>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        delete from
+        <include refid="operate_table"/>
+        where
+        id in (
+            <foreach collection="ids" separator="," item="item">
+                #{item,jdbcType=BIGINT}
+            </foreach>
+        )
+    </delete>
+
+    <delete id="deleteRolePrivilegeByRoleId" parameterType="java.lang.Long">
+        delete from
+        <include refid="role_privilege_table"/>
+        where
+        role_id = #{roleId,jdbcType=BIGINT}
+    </delete>
+
+    <delete id="deleteUserRoleByRoleId" parameterType="java.lang.Long">
+        delete from
+        tb_sys_user_role
+        where
+        role_id = #{roleId,jdbcType=BIGINT}
+    </delete>
+
+
+    <update id="update" parameterType="role">
+        update <include refid="operate_table"/>
+        <set>
+            <if test='name != null and !"".equals(name.trim())'>
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test='modifiedTime != null and !"".equals(modifiedTime.trim())'>
+                modified_time = #{modifiedTime,jdbcType=DATE},
+            </if>
+        </set>
+        where
+        id = #{id,jdbcType=BIGINT}
+    </update>
+
+    <select id="listForPage" parameterType="java.util.Map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from
+        <include refid="operate_table"/>
+        <where>
+            and id >= (select id from <include refid="operate_table"/> limit #{offset,jdbcType=BIGINT}, 1)
+            <if test='name != null and !"".equals(name.trim())'>
+                and name like CONCAT(CONCAT('%', #{name,jdbcType=VARCHAR}), '%')
+            </if>
+
+        </where>
+        /* order by id desc, username desc*/
+        limit #{pageSize,jdbcType=BIGINT}
+
+    </select>
+
+    <select id="listPageCount" parameterType="java.util.Map" resultType="java.lang.Long">
+        select count(1) from
+        <include refid="operate_table"/>
+        <where>
+            <if test='name != null and !"".equals(name.trim())'>
+                and name like CONCAT(CONCAT('%', #{name,jdbcType=VARCHAR}), '%')
+            </if>
+
+        </where>
+    </select>
+
+    <select id="getByKey" parameterType="java.lang.Long" resultMap="Role_Privilege_ResultMap" >
+        select  <include refid="Role_Privilege_Column_List"/>
+        from tb_sys_role r
+        left outer join tb_sys_role_privilege rp
+            on r.id = rp.role_id
+        left outer join tb_sys_privilege p
+            on p.id =rp.privilege_id
+        where r.id =#{id,jdbcType=BIGINT}
+    </select>
+
+</mapper>

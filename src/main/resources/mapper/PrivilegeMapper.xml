@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.willson.mapper.PrivilegeMapper">
+
+    <sql id="operate_table">
+		tb_sys_privilege
+	</sql>
+    <sql id="role_privilege_table">
+		tb_sys_role_privilege
+	</sql>
+
+    <resultMap id="BaseResultMap" type="privilege">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="href" property="href" jdbcType="VARCHAR"/>
+        <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="DATE"/>
+        <result column="modified_time" property="modifiedTime" jdbcType="DATE"/>
+    </resultMap>
+
+    <resultMap id="Privilege_Children_ResultMap" type="privilege">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="href" property="href" jdbcType="VARCHAR"/>
+        <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        <collection property="children" ofType="com.willson.pojo.Privilege" columnPrefix="c_" fetchType="lazy">
+            <id column="id" property="id" jdbcType="BIGINT"/>
+            <result column="title" property="title" jdbcType="VARCHAR"/>
+            <result column="href" property="href" jdbcType="VARCHAR"/>
+            <result column="icon" property="icon" jdbcType="VARCHAR"/>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, title, href, icon, create_time, modified_time
+    </sql>
+
+    <sql id="Privilege_Children_Column_List">
+        p.id, p.title, p.href, p.icon, c.id c_id, c.title c_title, c.href c_href, c.icon c_icon
+    </sql>
+
+    <insert id="insert" parameterType="privilege">
+        <selectKey keyProperty="id" resultType="java.lang.Long" order="AFTER">  <!-- 在添加完后返回id -->
+            SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+        insert into
+        <include refid="operate_table"/>
+        (title, href, icon, parent_id, create_time, modified_time) values (#{title,jdbcType=VARCHAR},#{href,jdbcType=VARCHAR},#{icon,jdbcType=VARCHAR},#{parentId,jdbcType=BIGINT},#{createTime,jdbcType=DATE}, #{modifiedTime,jdbcType=DATE})
+    </insert>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        delete from
+        <include refid="operate_table"/>
+        where
+        id in (
+            <foreach collection="ids" separator="," item="item">
+                #{item,jdbcType=BIGINT}
+            </foreach>
+        )
+    </delete>
+
+    <delete id="deleteRolePrivilegeByPrivilegeId" parameterType="java.lang.Long">
+        delete from
+        <include refid="role_privilege_table"/>
+        where
+        privilege_id = #{privilegeId,jdbcType=BIGINT}
+    </delete>
+
+    <update id="update" parameterType="role">
+
+    </update>
+
+    <select id="listForPage" parameterType="java.util.Map" resultMap="BaseResultMap">
+
+    </select>
+
+    <select id="listPageCount" parameterType="java.util.Map" resultType="java.lang.Long">
+
+    </select>
+
+    <select id="getByKey" parameterType="java.lang.Long" resultMap="Privilege_Children_ResultMap" >
+
+    </select>
+
+    <select id="listPrivilegeByUserId" parameterType="java.lang.Long" resultMap="Privilege_Children_ResultMap" >
+        SELECT <include refid="Privilege_Children_Column_List"/>
+        FROM tb_sys_user_info u
+        LEFT OUTER JOIN tb_sys_user_role ur ON u.id = ur.user_id
+        LEFT OUTER JOIN tb_sys_role r ON r.id = ur.role_id
+        LEFT OUTER JOIN tb_sys_role_privilege rp ON r.id = rp.role_id
+        LEFT OUTER JOIN tb_sys_privilege p ON p.id = rp.privilege_id
+        LEFT OUTER JOIN tb_sys_privilege c ON c.parent_id = p.id
+        WHERE u.id = #{userId,jdbcType=BIGINT}
+    </select>
+
+    <select id="listTopMenuByUserId" parameterType="java.lang.Long" resultMap="Privilege_Children_ResultMap" >
+        SELECT <include refid="Privilege_Children_Column_List"/>
+        FROM tb_sys_user_info u
+        LEFT OUTER JOIN tb_sys_user_role ur ON u.id = ur.user_id
+        LEFT OUTER JOIN tb_sys_role r ON r.id = ur.role_id
+        LEFT OUTER JOIN tb_sys_role_privilege rp ON r.id = rp.role_id
+        LEFT OUTER JOIN tb_sys_privilege p ON p.id = rp.privilege_id
+        LEFT OUTER JOIN tb_sys_privilege c ON c.parent_id = p.id
+        WHERE u.id = #{userId,jdbcType=BIGINT} AND p.parent_id = 0
+    </select>
+
+</mapper>

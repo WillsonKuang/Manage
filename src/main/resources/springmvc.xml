@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/mvc 
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop.xsd ">
+
+	<context:component-scan base-package="com.willson.controller"></context:component-scan>
+	<mvc:annotation-driven conversion-service="conversionService"></mvc:annotation-driven>
+	<aop:aspectj-autoproxy proxy-target-class="true"></aop:aspectj-autoproxy>
+
+	<!-- 对模型视图名称的解析，即在模型视图名称添加前后缀 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/pages/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<!-- 资源映射 -->
+	<mvc:resources location="/WEB-INF/global/css/" mapping="/css/**"/>
+	<mvc:resources location="/WEB-INF/global/js/" mapping="/js/**"/>
+	<mvc:resources location="/WEB-INF/global/img/" mapping="/img/**"/>
+
+
+
+	<bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+		<property name="converters">
+			<set>
+				<bean id="dateConvert" class="com.willson.converter.DateConverter"/><!--日期转换器-->
+			</set>
+		</property>
+	</bean>
+
+	<!--开启shiro的方法注解-->
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager"></property>
+	</bean>
+
+	<!-- 定义需要特殊处理的异常，用类名或完全路径名作为key，异常页名作为值 -->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="org.apache.shiro.authz.UnauthorizedException">/errorPages/noPermission</prop>
+				<prop key="org.apache.shiro.session.InvalidSessionException">/errorPages/noPermission</prop>
+			</props>
+		</property>
+	</bean>
+
+	<!-- 配置springMVC处理上传文件的信息 -->
+	<!--<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="utf-8"/>
+		<property name="maxUploadSize" value="10485760000"/>
+		<property name="maxInMemorySize" value="40960"/>
+	</bean>-->
+
+
+</beans>
+
+
+
+
+
+
+
+
+
+
+
